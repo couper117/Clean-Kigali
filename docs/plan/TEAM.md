@@ -4,7 +4,7 @@ Jira project key: **CK001**. GitHub repository: https://github.com/couper117/Cle
 
 | Name | Role | GitHub | Jira |
 |---|---|---|---|
-| _Team lead's full name_ | Team lead and backend developer: project setup, authentication, reports API, deployment | [couper117](https://github.com/couper117) | _Jira name_ |
+| Kenny Kelvin | Team lead and backend developer: project setup, authentication, reports API, deployment | [couper117](https://github.com/couper117) | Kenny Kelvin |
 | Utuje Oceanne Camilla | Database and API developer, research lead: tables, seed data, validation, locations and categories API, stakeholder study, pitch | [utujecam](https://github.com/utujecam) | Utuje Oceanne Camilla |
 | Isaro Deborah | API developer and documentation lead: reports table, users and status APIs, statistics, SRS, project plan, slides | [deborahisaro](https://github.com/deborahisaro) | Isaro Deborah |
 
@@ -16,7 +16,7 @@ documents, so everyone has commits and everyone presents. The full list is in
 
 | Member | Tasks | Hours |
 |---|---|---|
-| Team lead | 12 | 30 |
+| Kenny Kelvin | 12 | 30 |
 | Utuje Oceanne Camilla | 11 | 30 |
 | Isaro Deborah | 11 | 33 |
 
