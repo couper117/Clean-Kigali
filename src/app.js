@@ -4,8 +4,10 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
+const swaggerUi = require('swagger-ui-express');
 
 const config = require('./config/env');
+const swaggerDocument = require('./docs/swagger');
 const routes = require('./routes');
 const notFound = require('./middleware/notFound');
 const errorHandler = require('./middleware/errorHandler');
@@ -21,8 +23,13 @@ if (!config.isTest) app.use(morgan(config.logFormat));
 app.use(express.json({ limit: '100kb' }));
 
 app.get('/', (req, res) => {
-  res.json({ name: 'Clean Kigali API', health: '/api/health' });
+  res.json({ name: 'Clean Kigali API', docs: '/api-docs', health: '/api/health' });
 });
+
+app.get('/api-docs.json', (req, res) => res.json(swaggerDocument));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
+  customSiteTitle: 'Clean Kigali API docs',
+}));
 
 app.use('/api', routes);
 
