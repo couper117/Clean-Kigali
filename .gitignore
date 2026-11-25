@@ -1,0 +1,10 @@
+node_modules/
+.env
+.env.*
+!.env.example
+coverage/
+*.log
+.DS_Store
+
+# Local-only files (e.g. Jira import with email addresses)
+*.local.*
