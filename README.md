@@ -55,7 +55,7 @@ All settings come from environment variables. Locally they are read from
 | `NODE_ENV` | `development` | `development`, `test` or `production` |
 | `PORT` | `3000` | Port the API listens on |
 | `DATABASE_URL` | `postgres://user:pass@localhost:5432/clean_kigali_dev` | PostgreSQL connection |
-| `DATABASE_SSL` | `true` | Force an encrypted database connection (on by default in production) |
+| `DATABASE_SSL` | `true` | `true` or `false`: encrypted database connection. Empty = on in production, off otherwise |
 | `TEST_DATABASE_URL` | `postgres://user:pass@localhost:5432/clean_kigali_test` | Database used by `npm test` |
 | `CORS_ORIGIN` | `*` | Which website may call the API from a browser |
 
@@ -66,6 +66,33 @@ All settings come from environment variables. Locally they are read from
 | Request logs | Short, coloured (`dev`) | Full (`combined`) |
 | Server errors | Message and stack trace returned | Generic message only |
 | Database connection | Plain | Encrypted (TLS) |
+
+Every variable is checked when the app starts. A missing `DATABASE_URL`, an
+unknown `NODE_ENV`, a `PORT` that is not a number or a `DATABASE_SSL` that is
+not `true`/`false` stops the app with a message naming the variable.
+
+## Production (Render)
+
+`render.yaml` describes the production setup as a Render Blueprint, so it is
+created the same way every time:
+
+| Resource | Plan | Settings |
+|---|---|---|
+| `clean-kigali-db` PostgreSQL | Free | Region Frankfurt, database `clean_kigali` |
+| `clean-kigali-api` web service | Free | Node 22, deploys every merge into `main` |
+
+- **Build:** `npm ci` installs the exact versions in `package-lock.json`.
+- **Start:** `npm run migrate && npm start` brings the schema up to date, then
+  starts the API. Applied migrations are skipped, so this is safe on every deploy.
+- **Health check:** Render calls `/api/health` and only sends traffic to a new
+  deploy once it answers 200.
+- **Secrets:** `DATABASE_URL` is filled in by Render from the database it
+  creates; no password is written in the repository.
+- **TLS:** on by default in production. If the logs show
+  `The server does not support SSL connections`, set `DATABASE_SSL=false` on
+  the web service.
+- **Crashes:** an unhandled error stops the process with exit code 1, and
+  Render starts a fresh one.
 
 ## Project structure
 
