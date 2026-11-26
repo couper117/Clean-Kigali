@@ -142,6 +142,33 @@ applied 002_create_categories.sql
 waiting 003_create_users.sql is still empty; it and later files will run once it has SQL
 ```
 
+## Logging in
+
+Residents use the public routes without an account. Staff (roles `admin` and
+`officer`) log in to get a token:
+
+```bash
+curl -X POST http://localhost:3000/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"admin@cleankigali.rw","password":"..."}'
+```
+
+Send the token on staff routes as `Authorization: Bearer <token>`. In Swagger,
+click **Authorize** and paste it. A token lasts `JWT_EXPIRES_IN` (8 hours by
+default). Deactivating an account stops its token working at once.
+
+In route files:
+
+```js
+const { requireAuth, requireRole } = require('../middleware/auth');
+router.get('/', requireAuth, list);                          // any staff member
+router.delete('/:id', requireAuth, requireRole('admin'), remove); // admins only
+```
+
+Passwords are stored only as bcrypt hashes. Use `hashPassword()` from
+`src/services/auth.service.js` (seeds, users service) so every hash has the
+same cost.
+
 ## Error format
 
 Every error has the same shape:
