@@ -13,6 +13,8 @@ tags:
     description: Checks that the API is running
   - name: Auth
     description: Staff log in here. Click Authorize and paste the token to call staff routes.
+  - name: Reports
+    description: Sanitation problems reported by residents and followed by staff
 paths:
   /api/health:
     get:
@@ -94,6 +96,127 @@ paths:
                     $ref: '#/components/schemas/User'
         '401':
           $ref: '#/components/responses/Unauthorized'
+  /api/reports:
+    post:
+      tags: [Reports]
+      summary: Report a sanitation problem (public) and get a reference code
+      description: >
+        No login needed. The report starts with status new and priority medium;
+        staff change these later. Keep the reference code to follow the report.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportInput'
+      responses:
+        '201':
+          description: Report saved. The Location header points to it.
+          headers:
+            Location:
+              schema:
+                type: string
+                example: /api/reports/12
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '400':
+          description: Missing or invalid fields, or a category or sector that does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  status: 400
+                  message: Some fields are not valid
+                  details:
+                    - field: categoryId
+                      message: categoryId is required
+                    - field: sectorId
+                      message: There is no sector with id 99
+    get:
+      tags: [Reports]
+      summary: List reports with filters and pages (staff)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [new, in_progress, resolved, rejected]
+        - name: priority
+          in: query
+          schema:
+            type: string
+            enum: [low, medium, high]
+        - name: categoryId
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        - name: sectorId
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        - name: assignedTo
+          in: query
+          description: Id of the staff member the report is assigned to
+          schema:
+            type: integer
+            minimum: 1
+        - name: from
+          in: query
+          description: Reported on or after this day (Kigali time)
+          schema:
+            type: string
+            format: date
+            example: '2026-11-01'
+        - name: to
+          in: query
+          description: Reported on or before this day (Kigali time)
+          schema:
+            type: string
+            format: date
+            example: '2026-11-30'
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: One page of reports, newest first
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportList'
+        '400':
+          description: A filter has a wrong value
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  status: 400
+                  message: Some fields are not valid
+                  details:
+                    - field: limit
+                      message: limit must be from 1 to 100
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 components:
   securitySchemes:
     bearerAuth:
@@ -146,6 +269,151 @@ components:
               status: 404
               message: Report not found
   schemas:
+    ReportInput:
+      type: object
+      required: [title, description, categoryId, sectorId]
+      properties:
+        title:
+          type: string
+          minLength: 3
+          maxLength: 120
+          example: Bin overflowing at Kimironko market
+        description:
+          type: string
+          minLength: 10
+          maxLength: 2000
+          example: The big bin by the market entrance has not been emptied for four days.
+        categoryId:
+          type: integer
+          example: 2
+        sectorId:
+          type: integer
+          example: 1
+        locationDetails:
+          type: string
+          maxLength: 255
+          example: Next to the bus stop, KG 11 Ave
+        latitude:
+          type: number
+          minimum: -90
+          maximum: 90
+          description: Send together with longitude, or leave both out
+          example: -1.9497
+        longitude:
+          type: number
+          minimum: -180
+          maximum: 180
+          example: 30.1263
+        reporterName:
+          type: string
+          maxLength: 100
+          example: Aline Uwase
+        reporterPhone:
+          type: string
+          description: Rwandan mobile number, so staff can call back
+          example: '0788123456'
+    Report:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 12
+        reference:
+          type: string
+          example: CK-7F3K2A
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 2
+            name:
+              type: string
+              example: Overflowing bin
+        sector:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            name:
+              type: string
+              example: Kimironko
+            district:
+              type: string
+              example: Gasabo
+        locationDetails:
+          type: string
+          nullable: true
+        latitude:
+          type: number
+          nullable: true
+          example: -1.9497
+        longitude:
+          type: number
+          nullable: true
+          example: 30.1263
+        status:
+          type: string
+          enum: [new, in_progress, resolved, rejected]
+        priority:
+          type: string
+          enum: [low, medium, high]
+        reporter:
+          type: object
+          properties:
+            name:
+              type: string
+              nullable: true
+            phone:
+              type: string
+              nullable: true
+        assignedTo:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            fullName:
+              type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: string
+          format: date-time
+          nullable: true
+    ReportList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Report'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 57
+        totalPages:
+          type: integer
+          example: 3
     LoginRequest:
       type: object
       required: [email, password]
