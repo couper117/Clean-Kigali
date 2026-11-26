@@ -39,6 +39,25 @@ function port(name, fallback) {
   return number;
 }
 
+// The key that signs login tokens. Anyone who knows it can make a valid token,
+// so production needs a long random one (Render generates it).
+function jwtSecret() {
+  const value = required('JWT_SECRET');
+  if (isProduction && value.length < 32) {
+    throw new Error('JWT_SECRET must be at least 32 characters in production.');
+  }
+  return value;
+}
+
+// How long a login lasts: a number of seconds or a time like "8h" or "30m".
+function duration(name, fallback) {
+  const value = process.env[name];
+  if (value === undefined || value === '') return fallback;
+  if (/^\d+$/.test(value)) return Number(value);
+  if (/^\d+[smhd]$/.test(value)) return value;
+  throw new Error(`${name} must be a number of seconds or a time like 30m, 8h or 1d; got "${value}".`);
+}
+
 const config = {
   env,
   isProduction,
@@ -47,6 +66,8 @@ const config = {
   databaseUrl: required('DATABASE_URL'),
   // Hosted databases need an encrypted (TLS) connection; a local one does not.
   databaseSsl: boolean('DATABASE_SSL', isProduction),
+  jwtSecret: jwtSecret(),
+  jwtExpiresIn: duration('JWT_EXPIRES_IN', '8h'),
   corsOrigin: process.env.CORS_ORIGIN || '*',
   // Short coloured logs while developing, full Apache-style logs in production.
   logFormat: isProduction ? 'combined' : 'dev',
