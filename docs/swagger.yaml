@@ -15,6 +15,10 @@ tags:
     description: Staff log in here. Click Authorize and paste the token to call staff routes.
   - name: Reports
     description: Sanitation problems reported by residents and followed by staff
+  - name: Locations
+    description: Kigali's districts and sectors, used when reporting a problem
+  - name: Categories
+    description: Problem types residents choose from. Anyone can read them; admins manage them.
 paths:
   /api/health:
     get:
@@ -361,6 +365,200 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /api/districts:
+    get:
+      tags: [Locations]
+      summary: Kigali's districts
+      responses:
+        '200':
+          description: The 3 districts, by name
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/District'
+  /api/districts/{id}/sectors:
+    get:
+      tags: [Locations]
+      summary: The sectors of one district
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+      responses:
+        '200':
+          description: The district's sectors, by name
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Sector'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: No district with this id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  status: 404
+                  message: District not found
+  /api/sectors:
+    get:
+      tags: [Locations]
+      summary: All 35 sectors, or those of one district
+      parameters:
+        - name: districtId
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Sectors by district, then by name
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Sector'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /api/categories:
+    get:
+      tags: [Categories]
+      summary: All categories, by name
+      responses:
+        '200':
+          description: The categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+    post:
+      tags: [Categories]
+      summary: Add a category (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryInput'
+      responses:
+        '201':
+          description: Created. The Location header gives its URL.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: A category with this name already exists (ignoring case)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  status: 409
+                  message: A category named "Blocked drain" already exists
+  /api/categories/{id}:
+    get:
+      tags: [Categories]
+      summary: One category
+      parameters:
+        - $ref: '#/components/parameters/CategoryId'
+      responses:
+        '200':
+          description: The category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Categories]
+      summary: Replace a category (admin)
+      description: Send the whole category. A description left out is cleared.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CategoryId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryInput'
+      responses:
+        '200':
+          description: The updated category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Another category already has this name
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags: [Categories]
+      summary: Delete a category no report uses (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CategoryId'
+      responses:
+        '204':
+          description: Deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Reports still use this category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  status: 409
+                  message: This category is used by 4 report(s); move them to another category first
 components:
   parameters:
     ReportId:
@@ -371,6 +569,14 @@ components:
         type: integer
         minimum: 1
         example: 12
+    CategoryId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+        example: 3
   securitySchemes:
     bearerAuth:
       type: http
@@ -752,6 +958,69 @@ components:
         isActive:
           type: boolean
           example: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    District:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Gasabo
+        sectorCount:
+          type: integer
+          example: 15
+    Sector:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 9
+        name:
+          type: string
+          example: Kimironko
+        district:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            name:
+              type: string
+              example: Gasabo
+    CategoryInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 60
+          example: Blocked drain
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+          example: A drain or gutter blocked by waste, flooding the road
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 3
+        name:
+          type: string
+          example: Blocked drain
+        description:
+          type: string
+          nullable: true
+          example: A drain or gutter blocked by waste, flooding the road
         createdAt:
           type: string
           format: date-time
