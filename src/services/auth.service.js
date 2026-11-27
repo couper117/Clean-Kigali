@@ -66,4 +66,6 @@ async function findActiveUser(id) {
   return rows[0] ? toUser(rows[0]) : null;
 }
 
-module.exports = { login, findActiveUser, hashPassword, toUser, BCRYPT_ROUNDS };
+module.exports = {
+  login, findActiveUser, hashPassword, toUser, USER_COLUMNS, BCRYPT_ROUNDS,
+};
