@@ -4,13 +4,12 @@ Jira: CK001-31. The demo runs in Swagger on the production URL, so the panel
 sees the real deployed API. It takes 5 minutes, and each member shows the
 endpoints they built.
 
-Production Swagger: _added after deployment (CK001-30)_
+Production Swagger: _added after deployment (CK001-30, Vercel)_
 
 ## Before the slot (Monday 30 November)
 
-- [ ] **15 minutes before:** open `/api/health` on the production URL. Render's
-      free plan sleeps after 15 minutes without traffic, and the first request
-      takes up to a minute to wake it.
+- [ ] **15 minutes before:** open `/api/health` and `/api-docs` on the
+      production URL, so the function and the Neon database are awake.
 - [ ] Check `/api/health` shows `"environment": "production"` and `"database": "up"`.
 - [ ] Have the seeded admin and officer logins written down. They are never
       in the repository or on the slides.
@@ -22,7 +21,7 @@ Production Swagger: _added after deployment (CK001-30)_
 
 | # | Time | Who | Request in Swagger | What to point out |
 |---|---|---|---|---|
-| 1 | 0:00 | Kenny | `GET /api/health` | 200, production, database up: the live API on Render |
+| 1 | 0:00 | Kenny | `GET /api/health` | 200, production, database up: the live API on Vercel |
 | 2 | 0:20 | Utuje | `GET /api/districts`, then `GET /api/districts/{id}/sectors` | Kigali's 3 districts and their sectors, from the seed |
 | 3 | 0:45 | Utuje | `GET /api/categories` | The problem types a resident can choose |
 | 4 | 1:05 | Kenny | `POST /api/reports` with an **empty body** | **Error case:** 400 with one message per missing field |
