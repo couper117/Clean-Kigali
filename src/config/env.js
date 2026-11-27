@@ -1,5 +1,5 @@
 // Reads every setting from environment variables, so nothing secret is in the code.
-// In development the values come from the .env file; in production the host (Render) sets them.
+// In development the values come from the .env file; in production the host (Vercel) sets them.
 // Every value is checked here, once, so a wrong setting stops the app at start-up
 // instead of failing later in the middle of a request.
 require('dotenv').config({ quiet: true });
@@ -40,7 +40,7 @@ function port(name, fallback) {
 }
 
 // The key that signs login tokens. Anyone who knows it can make a valid token,
-// so production needs a long random one (Render generates it).
+// so production needs a long random one.
 function jwtSecret() {
   const value = required('JWT_SECRET');
   if (isProduction && value.length < 32) {

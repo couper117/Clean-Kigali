@@ -6,6 +6,9 @@
 // Each file in db/migrations runs once, in name order (001_, 002_, ...), inside
 // a transaction. The table schema_migrations remembers which files have run.
 require('dotenv').config({ quiet: true });
+// Neon's normal URL goes through a connection pooler that cannot hold the lock used
+// below, so migrations use the direct URL when there is one (Vercel sets it with Neon).
+if (process.env.DATABASE_URL_UNPOOLED) process.env.DATABASE_URL = process.env.DATABASE_URL_UNPOOLED;
 if (process.argv.includes('--test')) {
   process.env.NODE_ENV = 'test';
   process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;

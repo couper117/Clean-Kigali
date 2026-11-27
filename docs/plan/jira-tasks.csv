@@ -27,8 +27,8 @@ Report status updates,Task,"PATCH /api/reports/{id}/status records who changed i
 Report statistics endpoint,Task,"GET /api/reports/stats: counts by status, category and sector, average time to resolve. Used for the evaluation slide. Document in Swagger. Estimate: 2h.",7200,api,Medium
 "API tests: auth, categories and users",Task,"node:test + supertest tests including validation and error cases, run against TEST_DATABASE_URL. Estimate: 3h.",10800,testing,Medium
 API tests: reports,Task,"Tests for report create, list filters, update, status history, delete and error cases. Estimate: 3h.",10800,testing,Medium
-Production configuration,Task,"Check every setting comes from environment variables, NODE_ENV=production behaviour (logs, error messages, TLS), no secrets in git, render.yaml blueprint. Estimate: 2h.",7200,deploy,Medium
-Deploy to Render,Task,"Create the Render PostgreSQL database and web service from GitHub, set environment variables, run migrations and seed, confirm /api/health and /api-docs work online. Add URLs to README. Estimate: 3h.",10800,deploy,Medium
+Production configuration,Task,"Check every setting comes from environment variables, NODE_ENV=production behaviour (logs, error messages, TLS), no secrets in git, vercel.json. Estimate: 2h.",7200,deploy,Medium
+Deploy to Vercel,Task,"Create the Vercel project from GitHub with a Neon PostgreSQL database, set environment variables, run migrations and seed, confirm /api/health and /api-docs work online. Add URLs to README. Estimate: 3h.",10800,deploy,Medium
 Live Swagger test run and demo script,Task,"Test every endpoint on the production Swagger, including at least one validation error, and write the 5-minute demo order. Estimate: 2h.",7200,deploy,Medium
 Evaluation checklist and results,Task,"Check the finished system against the objectives and SRS, record results and lessons learned. Output: slide 10. Estimate: 2h.",7200,evaluation,Medium
 "Pitch: value proposition, market and competitors",Task,"Who benefits and how, market size (Kigali households, districts, cleaning companies), comparison with current ways of reporting. Output: slide 9. Estimate: 3h.",10800,evaluation,Medium

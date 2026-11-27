@@ -12,8 +12,8 @@ one is in [TASKS.md](TASKS.md) and the team is in [TEAM.md](TEAM.md).
 | Wed 25 Nov | Express setup, Swagger, error handling, database connection and migration runner | Problem statement, scope, start stakeholder survey |
 | Thu 26 Nov | Migrations, seed data, validation, login with JWT | Feasibility study, SRS |
 | Fri 27 Nov | Locations, categories, users and reports CRUD | Charter, WBS, schedule, budget, risks |
-| Sat 28 Nov | Status updates, statistics, tests, first deploy to Render | Team roles, communication plan, pitch |
-| Sun 29 Nov | Fix bugs, test every endpoint live on Render, freeze code | Evaluation, 10 slides, rehearsal |
+| Sat 28 Nov | Status updates, statistics, tests, first deploy to Vercel | Team roles, communication plan, pitch |
+| Sun 29 Nov | Fix bugs, test every endpoint live on Vercel, freeze code | Evaluation, 10 slides, rehearsal |
 | Mon 30 Nov | **Presentation.** Push everything before the team's slot | |
 
 ## Where each mark comes from
@@ -26,7 +26,7 @@ one is in [TASKS.md](TASKS.md) and the team is in [TEAM.md](TEAM.md).
 | 4. Individual defence | 10 | Each member can explain and change their own code |
 | 5. Identification and planning | 8 | SRS and project plan documents, slides 2 to 7 |
 | 6. Express and PostgreSQL setup | 8 | `src/` structure, npm scripts, README, `db/migrations`, `db/seeds` |
-| 7. Dev and production | 6 | `.env.example`, `NODE_ENV` behaviour, `.env` never committed, live Render URL |
+| 7. Dev and production | 6 | `.env.example`, `NODE_ENV` behaviour, `.env` never committed, live Vercel URL |
 | 8. Working backend | 8 | Full CRUD, validation, correct status codes, central error handler |
 | 9. Swagger and live testing | 10 | Every endpoint at `/api-docs` with schemas and responses, one error case shown live |
 | 10. Presentation and pitch | 10 | Exactly 10 slides, every member speaks, 8 to 10 minutes |
