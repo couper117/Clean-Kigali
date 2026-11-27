@@ -147,11 +147,83 @@ function validateListQuery(req, res, next) {
   next();
 }
 
+// /api/reports/:id -> req.reportId as a number.
+function validateReportId(req, res, next) {
+  const details = [];
+  const reportId = id(details, 'id', req.params.id, { required: true });
+  if (details.length) return next(fail(details));
+  req.reportId = reportId;
+  next();
+}
+
+// /api/reports/track/:reference -> req.reference in capitals (residents may type ck-7f3k2a).
+function validateReference(req, res, next) {
+  const reference = String(req.params.reference).trim().toUpperCase();
+  if (!/^CK-[A-Z0-9]{6}$/.test(reference)) {
+    return next(fail([{ field: 'reference', message: 'reference must look like CK-7F3K2A' }]));
+  }
+  req.reference = reference;
+  next();
+}
+
+// Fields staff can edit, and how each is checked. Status is not here: it changes only
+// through PATCH /api/reports/{id}/status, which records who changed it and why.
+const EDITABLE = {
+  title: (d, v) => text(d, 'title', v, { required: true, min: 3, max: 120 }),
+  description: (d, v) => text(d, 'description', v, { required: true, min: 10, max: 2000 }),
+  categoryId: (d, v) => id(d, 'categoryId', v, { required: true }),
+  sectorId: (d, v) => id(d, 'sectorId', v, { required: true }),
+  priority: (d, v) => {
+    if (v === undefined || v === null || v === '') d.push({ field: 'priority', message: 'priority is required' });
+    return oneOf(d, 'priority', v, PRIORITIES);
+  },
+  locationDetails: (d, v) => text(d, 'locationDetails', v, { max: 255 }),
+  latitude: (d, v) => coordinate(d, 'latitude', v, 90),
+  longitude: (d, v) => coordinate(d, 'longitude', v, 180),
+  reporterName: (d, v) => text(d, 'reporterName', v, { max: 100 }),
+  reporterPhone: (d, v) => phone(d, 'reporterPhone', v),
+  // null unassigns the report.
+  assignedTo: (d, v) => id(d, 'assignedTo', v),
+};
+
+// PUT sends the whole report: fields left out are cleared (or refused if required).
+// PATCH sends only the fields to change.
+function reportUpdate({ partial }) {
+  return function validateReportUpdate(req, res, next) {
+    const body = bodyOf(req);
+    const sent = (field) => Object.hasOwn(body, field);
+    const details = [];
+    const changes = {};
+
+    if (sent('status')) {
+      details.push({ field: 'status', message: 'Change the status with PATCH /api/reports/{id}/status, so the change is recorded' });
+    }
+    for (const [field, check] of Object.entries(EDITABLE)) {
+      if (partial && !sent(field)) continue;
+      changes[field] = check(details, body[field]);
+    }
+    if (sent('latitude') !== sent('longitude') || (changes.latitude === null) !== (changes.longitude === null)) {
+      if (!details.some((d) => /itude/.test(d.field))) {
+        details.push({ field: 'latitude', message: 'Send latitude and longitude together, or neither' });
+      }
+    }
+    if (partial && Object.keys(changes).length === 0 && details.length === 0) {
+      details.push({ field: 'body', message: `Send at least one of: ${Object.keys(EDITABLE).join(', ')}` });
+    }
+
+    if (details.length) return next(fail(details));
+    req.body = changes;
+    next();
+  };
+}
+
 module.exports = {
   validateCreateReport,
   validateListQuery,
+  validateReportId,
+  validateReference,
+  validateReportReplace: reportUpdate({ partial: false }),
+  validateReportPatch: reportUpdate({ partial: true }),
   STATUSES,
   PRIORITIES,
-  // Shared with the update checks (CK001-24).
-  helpers: { text, id, coordinate, oneOf, phone, bodyOf, fail },
 };

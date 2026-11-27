@@ -217,7 +217,160 @@ paths:
                       message: limit must be from 1 to 100
         '401':
           $ref: '#/components/responses/Unauthorized'
+  /api/reports/track/{reference}:
+    get:
+      tags: [Reports]
+      summary: Follow a report by its reference code (public)
+      description: Shows progress only. Contact details and staff names are not shown.
+      parameters:
+        - name: reference
+          in: path
+          required: true
+          description: The code given when the report was made. Small letters work too.
+          schema:
+            type: string
+            example: CK-7F3K2A
+      responses:
+        '200':
+          description: The report's progress and status history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrackedReport'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: No report has this reference
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  status: 404
+                  message: No report has the reference CK-ZZZZZZ
+  /api/reports/{id}:
+    get:
+      tags: [Reports]
+      summary: One report with every detail (staff)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ReportId'
+      responses:
+        '200':
+          description: The report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Reports]
+      summary: Replace a report's details (staff)
+      description: >
+        Send the whole report. Optional fields left out are cleared. To change only
+        some fields use PATCH. The status cannot be changed here; use
+        PATCH /api/reports/{id}/status so the change is recorded.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ReportId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportReplace'
+      responses:
+        '200':
+          description: The updated report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Reports]
+      summary: Change some of a report's details (staff)
+      description: >
+        Send only the fields to change, for example the priority or the assigned
+        officer. assignedTo null unassigns the report.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ReportId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportPatch'
+            example:
+              priority: high
+              assignedTo: 2
+      responses:
+        '200':
+          description: The updated report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '400':
+          description: Invalid fields, no fields, or an attempt to change the status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  status: 400
+                  message: Some fields are not valid
+                  details:
+                    - field: status
+                      message: Change the status with PATCH /api/reports/{id}/status, so the change is recorded
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Reports]
+      summary: Delete a report and its history (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ReportId'
+      responses:
+        '204':
+          description: Deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 components:
+  parameters:
+    ReportId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+        example: 12
   securitySchemes:
     bearerAuth:
       type: http
@@ -269,6 +422,140 @@ components:
               status: 404
               message: Report not found
   schemas:
+    ReportReplace:
+      type: object
+      required: [title, description, categoryId, sectorId, priority]
+      properties:
+        title:
+          type: string
+          minLength: 3
+          maxLength: 120
+          example: Drain blocked on KG 9 Ave
+        description:
+          type: string
+          minLength: 10
+          maxLength: 2000
+          example: Water floods the road after every rain.
+        categoryId:
+          type: integer
+          example: 3
+        sectorId:
+          type: integer
+          example: 1
+        priority:
+          type: string
+          enum: [low, medium, high]
+        locationDetails:
+          type: string
+          maxLength: 255
+          nullable: true
+        latitude:
+          type: number
+          nullable: true
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          nullable: true
+          minimum: -180
+          maximum: 180
+        reporterName:
+          type: string
+          nullable: true
+          maxLength: 100
+        reporterPhone:
+          type: string
+          nullable: true
+          example: '0788123456'
+        assignedTo:
+          type: integer
+          nullable: true
+          description: Id of an active staff member; null unassigns
+          example: 2
+    ReportPatch:
+      type: object
+      minProperties: 1
+      description: Any of the ReportReplace fields; only those sent are changed.
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        categoryId:
+          type: integer
+        sectorId:
+          type: integer
+        priority:
+          type: string
+          enum: [low, medium, high]
+        locationDetails:
+          type: string
+          nullable: true
+        latitude:
+          type: number
+          nullable: true
+        longitude:
+          type: number
+          nullable: true
+        reporterName:
+          type: string
+          nullable: true
+        reporterPhone:
+          type: string
+          nullable: true
+        assignedTo:
+          type: integer
+          nullable: true
+    TrackedReport:
+      type: object
+      properties:
+        reference:
+          type: string
+          example: CK-7F3K2A
+        title:
+          type: string
+          example: Bin overflowing at Kimironko market
+        category:
+          type: string
+          example: Overflowing bin
+        sector:
+          type: string
+          example: Kimironko
+        district:
+          type: string
+          example: Gasabo
+        status:
+          type: string
+          enum: [new, in_progress, resolved, rejected]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: string
+          format: date-time
+          nullable: true
+        history:
+          type: array
+          items:
+            type: object
+            properties:
+              oldStatus:
+                type: string
+                nullable: true
+                example: new
+              newStatus:
+                type: string
+                example: in_progress
+              note:
+                type: string
+                nullable: true
+                example: Collection team sent
+              createdAt:
+                type: string
+                format: date-time
     ReportInput:
       type: object
       required: [title, description, categoryId, sectorId]

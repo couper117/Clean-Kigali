@@ -3,7 +3,10 @@
 const { api, pool } = require('./helpers');
 const { test, after } = require('node:test');
 const assert = require('node:assert/strict');
-const { validateCreateReport, validateListQuery } = require('../src/validators/reports.validator');
+const {
+  validateCreateReport, validateListQuery, validateReference, validateReportId,
+  validateReportReplace, validateReportPatch,
+} = require('../src/validators/reports.validator');
 const { makeReference } = require('../src/services/reports.service');
 
 after(() => pool.end());
@@ -60,4 +63,50 @@ test('list filters: defaults, limits and wrong values', () => {
   assert.deepEqual(fields({ from: '2026-02-30' }), ['from']);
   assert.deepEqual(fields({ from: '2026-11-29', to: '2026-11-01' }), ['to']);
   assert.deepEqual(fields({ sectorId: ['1', '2'] }), ['sectorId']);
+});
+
+test('tracking references are matched in capitals and checked for shape', () => {
+  assert.equal(run(validateReference, { params: { reference: ' ck-7f3k2a ' } }).reference, 'CK-7F3K2A');
+  assert.equal(run(validateReference, { params: { reference: 'hello' } }).statusCode, 400);
+});
+
+test('report ids must be whole numbers', () => {
+  assert.equal(run(validateReportId, { params: { id: '12' } }).reportId, 12);
+  assert.equal(run(validateReportId, { params: { id: 'abc' } }).statusCode, 400);
+  assert.equal(run(validateReportId, { params: { id: '99999999999' } }).statusCode, 400);
+});
+
+test('PATCH keeps only the fields sent; null unassigns', () => {
+  assert.deepEqual(run(validateReportPatch, { body: { priority: 'high', assignedTo: null } }).body,
+    { priority: 'high', assignedTo: null });
+});
+
+test('PATCH refuses status, an empty body and a lone latitude', () => {
+  const fields = (body) => run(validateReportPatch, { body }).details.map((d) => d.field);
+  assert.deepEqual(fields({ status: 'resolved' }), ['status']);
+  assert.deepEqual(fields({}), ['body']);
+  assert.deepEqual(fields({ latitude: -1.95 }), ['latitude']);
+  assert.deepEqual(fields({ title: null }), ['title']);
+});
+
+test('PUT needs every required field and clears the optional ones left out', () => {
+  const fields = run(validateReportReplace, { body: { title: 'Full bin' } }).details.map((d) => d.field);
+  assert.deepEqual(fields, ['description', 'categoryId', 'sectorId', 'priority']);
+  const req = run(validateReportReplace, { body: {
+    title: 'Full bin', description: 'Bin by the bus stop is full', categoryId: 2, sectorId: 5, priority: 'low',
+  } });
+  assert.equal(req.body.reporterPhone, null);
+  assert.equal(req.body.assignedTo, null);
+});
+
+test('staff report routes answer 401 without a token, before checking the id', async () => {
+  assert.equal((await api().get('/api/reports/abc')).status, 401);
+  assert.equal((await api().patch('/api/reports/1').send({ priority: 'high' })).status, 401);
+  assert.equal((await api().delete('/api/reports/1')).status, 401);
+});
+
+test('GET /api/reports/track with a malformed reference returns 400', async () => {
+  const res = await api().get('/api/reports/track/not-a-code');
+  assert.equal(res.status, 400);
+  assert.equal(res.body.error.details[0].field, 'reference');
 });

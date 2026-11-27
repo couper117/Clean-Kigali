@@ -131,4 +131,97 @@ async function list(filters) {
   };
 }
 
-module.exports = { create, list, findById, checkLinks, toReport, makeReference, REPORT_SELECT };
+async function getById(id) {
+  const report = await findById(id);
+  if (!report) throw new AppError(404, 'Report not found');
+  return report;
+}
+
+// What a resident sees when following their report: progress only, no contact
+// details or staff names.
+async function track(reference) {
+  const { rows: [row] } = await db.query(
+    `SELECT r.id, r.reference, r.title, c.name AS category, s.name AS sector, d.name AS district,
+            r.status, r.created_at, r.updated_at, r.resolved_at
+       FROM reports r
+       JOIN categories c ON c.id = r.category_id
+       JOIN sectors s ON s.id = r.sector_id
+       JOIN districts d ON d.id = s.district_id
+      WHERE r.reference = $1`,
+    [reference],
+  );
+  if (!row) throw new AppError(404, `No report has the reference ${reference}`);
+
+  const { rows: history } = await db.query(
+    `SELECT old_status, new_status, note, created_at
+       FROM report_updates WHERE report_id = $1 ORDER BY created_at, id`,
+    [row.id],
+  );
+
+  return {
+    reference: row.reference,
+    title: row.title,
+    category: row.category,
+    sector: row.sector,
+    district: row.district,
+    status: row.status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    resolvedAt: row.resolved_at,
+    history: history.map((h) => ({
+      oldStatus: h.old_status, newStatus: h.new_status, note: h.note, createdAt: h.created_at,
+    })),
+  };
+}
+
+// API field -> column. Only these can be changed by update().
+const COLUMNS = {
+  title: 'title',
+  description: 'description',
+  categoryId: 'category_id',
+  sectorId: 'sector_id',
+  priority: 'priority',
+  locationDetails: 'location_details',
+  latitude: 'latitude',
+  longitude: 'longitude',
+  reporterName: 'reporter_name',
+  reporterPhone: 'reporter_phone',
+  assignedTo: 'assigned_to',
+};
+
+async function checkAssignee(userId) {
+  const { rows } = await db.query('SELECT 1 FROM users WHERE id = $1 AND is_active', [userId]);
+  if (!rows.length) {
+    throw new AppError(400, 'Some fields are not valid', [
+      { field: 'assignedTo', message: `There is no active staff member with id ${userId}` },
+    ]);
+  }
+}
+
+// Changes the given fields (PUT sends all of them, PATCH some).
+async function update(id, changes) {
+  await getById(id);
+  await checkLinks(changes);
+  if (changes.assignedTo) await checkAssignee(changes.assignedTo);
+
+  const fields = Object.keys(changes).filter((field) => COLUMNS[field]);
+  const sets = fields.map((field, i) => `${COLUMNS[field]} = $${i + 1}`);
+  const { rowCount } = await db.query(
+    `UPDATE reports SET ${sets.join(', ')}, updated_at = now() WHERE id = $${fields.length + 1}`,
+    [...fields.map((field) => changes[field]), id],
+  );
+  // Someone may have deleted it between the check above and this update.
+  if (rowCount === 0) throw new AppError(404, 'Report not found');
+  return getById(id);
+}
+
+// Its status history goes with it (ON DELETE CASCADE on report_updates).
+async function remove(id) {
+  const { rowCount } = await db.query('DELETE FROM reports WHERE id = $1', [id]);
+  if (rowCount === 0) throw new AppError(404, 'Report not found');
+}
+
+module.exports = {
+  create, list, findById, getById, track, update, remove,
+  checkLinks, toReport, makeReference, REPORT_SELECT,
+};
