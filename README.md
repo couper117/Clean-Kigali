@@ -97,7 +97,7 @@ Frankfurt (`fra1` and `eu-central-1`), the closest region to Rwanda.
   ```bash
   vercel env pull .env.production.local      # gitignored
   # copy DATABASE_URL_UNPOOLED from that file, then:
-  DATABASE_URL='<that url>' DATABASE_SSL=true npm run seed
+  DATABASE_URL='<that url>' DATABASE_SSL=true SEED_PASSWORD='<12+ characters>' npm run seed
   ```
 - **Secrets:** only in Vercel's settings and `.env` files, which are never
   committed.
@@ -162,6 +162,15 @@ curl -X POST http://localhost:3000/api/auth/login \
   -H 'Content-Type: application/json' \
   -d '{"email":"admin@cleankigali.rw","password":"..."}'
 ```
+
+`npm run seed` creates these accounts, all with the password from
+`SEED_PASSWORD` (on a laptop, `CleanKigali-dev-2026` by default):
+
+| Email | Role |
+|---|---|
+| `admin@cleankigali.rw` | admin |
+| `officer.gasabo@cleankigali.rw` | officer, Kimironko |
+| `officer.nyarugenge@cleankigali.rw` | officer, Nyamirambo |
 
 Send the token on staff routes as `Authorization: Bearer <token>`. In Swagger,
 click **Authorize** and paste it. A token lasts `JWT_EXPIRES_IN` (8 hours by
