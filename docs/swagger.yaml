@@ -11,6 +11,15 @@ servers:
 tags:
   - name: System
     description: Checks that the API is running
+<<<<<<< HEAD
+=======
+  - name: Auth
+    description: Staff log in here. Click Authorize and paste the token to call staff routes.
+  - name: Reports
+    description: Sanitation problems reported by residents and followed by staff
+  - name: Locations
+    description: Kigali's districts and sectors, used when reporting a problem
+>>>>>>> 73ef236 (CK001-20: add districts and sectors endpoints)
 paths:
   /api/health:
     get:
@@ -35,8 +44,769 @@ paths:
                 database: down
                 uptimeSeconds: 42
                 timestamp: '2026-11-25T08:00:00.000Z'
+<<<<<<< HEAD
+=======
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Log in as a staff member and get a token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Logged in. Send the token as Authorization Bearer on staff routes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Email or password is incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  status: 401
+                  message: Email or password is incorrect
+        '403':
+          description: The account is deactivated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  status: 403
+                  message: This account is deactivated; ask an admin to reactivate it
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      summary: The staff member who owns the token
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The logged-in user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/reports:
+    post:
+      tags: [Reports]
+      summary: Report a sanitation problem (public) and get a reference code
+      description: >
+        No login needed. The report starts with status new and priority medium;
+        staff change these later. Keep the reference code to follow the report.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportInput'
+      responses:
+        '201':
+          description: Report saved. The Location header points to it.
+          headers:
+            Location:
+              schema:
+                type: string
+                example: /api/reports/12
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '400':
+          description: Missing or invalid fields, or a category or sector that does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  status: 400
+                  message: Some fields are not valid
+                  details:
+                    - field: categoryId
+                      message: categoryId is required
+                    - field: sectorId
+                      message: There is no sector with id 99
+    get:
+      tags: [Reports]
+      summary: List reports with filters and pages (staff)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [new, in_progress, resolved, rejected]
+        - name: priority
+          in: query
+          schema:
+            type: string
+            enum: [low, medium, high]
+        - name: categoryId
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        - name: sectorId
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        - name: assignedTo
+          in: query
+          description: Id of the staff member the report is assigned to
+          schema:
+            type: integer
+            minimum: 1
+        - name: from
+          in: query
+          description: Reported on or after this day (Kigali time)
+          schema:
+            type: string
+            format: date
+            example: '2026-11-01'
+        - name: to
+          in: query
+          description: Reported on or before this day (Kigali time)
+          schema:
+            type: string
+            format: date
+            example: '2026-11-30'
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: One page of reports, newest first
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportList'
+        '400':
+          description: A filter has a wrong value
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  status: 400
+                  message: Some fields are not valid
+                  details:
+                    - field: limit
+                      message: limit must be from 1 to 100
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/reports/track/{reference}:
+    get:
+      tags: [Reports]
+      summary: Follow a report by its reference code (public)
+      description: Shows progress only. Contact details and staff names are not shown.
+      parameters:
+        - name: reference
+          in: path
+          required: true
+          description: The code given when the report was made. Small letters work too.
+          schema:
+            type: string
+            example: CK-7F3K2A
+      responses:
+        '200':
+          description: The report's progress and status history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrackedReport'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: No report has this reference
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  status: 404
+                  message: No report has the reference CK-ZZZZZZ
+  /api/reports/{id}:
+    get:
+      tags: [Reports]
+      summary: One report with every detail (staff)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ReportId'
+      responses:
+        '200':
+          description: The report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Reports]
+      summary: Replace a report's details (staff)
+      description: >
+        Send the whole report. Optional fields left out are cleared. To change only
+        some fields use PATCH. The status cannot be changed here; use
+        PATCH /api/reports/{id}/status so the change is recorded.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ReportId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportReplace'
+      responses:
+        '200':
+          description: The updated report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Reports]
+      summary: Change some of a report's details (staff)
+      description: >
+        Send only the fields to change, for example the priority or the assigned
+        officer. assignedTo null unassigns the report.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ReportId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportPatch'
+            example:
+              priority: high
+              assignedTo: 2
+      responses:
+        '200':
+          description: The updated report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '400':
+          description: Invalid fields, no fields, or an attempt to change the status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  status: 400
+                  message: Some fields are not valid
+                  details:
+                    - field: status
+                      message: Change the status with PATCH /api/reports/{id}/status, so the change is recorded
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Reports]
+      summary: Delete a report and its history (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ReportId'
+      responses:
+        '204':
+          description: Deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/districts:
+    get:
+      tags: [Locations]
+      summary: Kigali's districts
+      responses:
+        '200':
+          description: The 3 districts, by name
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/District'
+  /api/districts/{id}/sectors:
+    get:
+      tags: [Locations]
+      summary: The sectors of one district
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+      responses:
+        '200':
+          description: The district's sectors, by name
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Sector'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: No district with this id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  status: 404
+                  message: District not found
+  /api/sectors:
+    get:
+      tags: [Locations]
+      summary: All 35 sectors, or those of one district
+      parameters:
+        - name: districtId
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Sectors by district, then by name
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Sector'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+>>>>>>> 73ef236 (CK001-20: add districts and sectors endpoints)
 components:
   schemas:
+<<<<<<< HEAD
+=======
+    ReportReplace:
+      type: object
+      required: [title, description, categoryId, sectorId, priority]
+      properties:
+        title:
+          type: string
+          minLength: 3
+          maxLength: 120
+          example: Drain blocked on KG 9 Ave
+        description:
+          type: string
+          minLength: 10
+          maxLength: 2000
+          example: Water floods the road after every rain.
+        categoryId:
+          type: integer
+          example: 3
+        sectorId:
+          type: integer
+          example: 1
+        priority:
+          type: string
+          enum: [low, medium, high]
+        locationDetails:
+          type: string
+          maxLength: 255
+          nullable: true
+        latitude:
+          type: number
+          nullable: true
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          nullable: true
+          minimum: -180
+          maximum: 180
+        reporterName:
+          type: string
+          nullable: true
+          maxLength: 100
+        reporterPhone:
+          type: string
+          nullable: true
+          example: '0788123456'
+        assignedTo:
+          type: integer
+          nullable: true
+          description: Id of an active staff member; null unassigns
+          example: 2
+    ReportPatch:
+      type: object
+      minProperties: 1
+      description: Any of the ReportReplace fields; only those sent are changed.
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        categoryId:
+          type: integer
+        sectorId:
+          type: integer
+        priority:
+          type: string
+          enum: [low, medium, high]
+        locationDetails:
+          type: string
+          nullable: true
+        latitude:
+          type: number
+          nullable: true
+        longitude:
+          type: number
+          nullable: true
+        reporterName:
+          type: string
+          nullable: true
+        reporterPhone:
+          type: string
+          nullable: true
+        assignedTo:
+          type: integer
+          nullable: true
+    TrackedReport:
+      type: object
+      properties:
+        reference:
+          type: string
+          example: CK-7F3K2A
+        title:
+          type: string
+          example: Bin overflowing at Kimironko market
+        category:
+          type: string
+          example: Overflowing bin
+        sector:
+          type: string
+          example: Kimironko
+        district:
+          type: string
+          example: Gasabo
+        status:
+          type: string
+          enum: [new, in_progress, resolved, rejected]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: string
+          format: date-time
+          nullable: true
+        history:
+          type: array
+          items:
+            type: object
+            properties:
+              oldStatus:
+                type: string
+                nullable: true
+                example: new
+              newStatus:
+                type: string
+                example: in_progress
+              note:
+                type: string
+                nullable: true
+                example: Collection team sent
+              createdAt:
+                type: string
+                format: date-time
+    ReportInput:
+      type: object
+      required: [title, description, categoryId, sectorId]
+      properties:
+        title:
+          type: string
+          minLength: 3
+          maxLength: 120
+          example: Bin overflowing at Kimironko market
+        description:
+          type: string
+          minLength: 10
+          maxLength: 2000
+          example: The big bin by the market entrance has not been emptied for four days.
+        categoryId:
+          type: integer
+          example: 2
+        sectorId:
+          type: integer
+          example: 1
+        locationDetails:
+          type: string
+          maxLength: 255
+          example: Next to the bus stop, KG 11 Ave
+        latitude:
+          type: number
+          minimum: -90
+          maximum: 90
+          description: Send together with longitude, or leave both out
+          example: -1.9497
+        longitude:
+          type: number
+          minimum: -180
+          maximum: 180
+          example: 30.1263
+        reporterName:
+          type: string
+          maxLength: 100
+          example: Aline Uwase
+        reporterPhone:
+          type: string
+          description: Rwandan mobile number, so staff can call back
+          example: '0788123456'
+    Report:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 12
+        reference:
+          type: string
+          example: CK-7F3K2A
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 2
+            name:
+              type: string
+              example: Overflowing bin
+        sector:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            name:
+              type: string
+              example: Kimironko
+            district:
+              type: string
+              example: Gasabo
+        locationDetails:
+          type: string
+          nullable: true
+        latitude:
+          type: number
+          nullable: true
+          example: -1.9497
+        longitude:
+          type: number
+          nullable: true
+          example: 30.1263
+        status:
+          type: string
+          enum: [new, in_progress, resolved, rejected]
+        priority:
+          type: string
+          enum: [low, medium, high]
+        reporter:
+          type: object
+          properties:
+            name:
+              type: string
+              nullable: true
+            phone:
+              type: string
+              nullable: true
+        assignedTo:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            fullName:
+              type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: string
+          format: date-time
+          nullable: true
+    ReportList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Report'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 57
+        totalPages:
+          type: integer
+          example: 3
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: admin@cleankigali.rw
+        password:
+          type: string
+          format: password
+          maxLength: 72
+          example: your-password
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        tokenType:
+          type: string
+          example: Bearer
+        expiresIn:
+          type: string
+          example: 8h
+        user:
+          $ref: '#/components/schemas/User'
+    User:
+      type: object
+      description: A staff account. The password hash is never returned.
+      properties:
+        id:
+          type: integer
+          example: 1
+        fullName:
+          type: string
+          example: Jean Bosco Niyonzima
+        email:
+          type: string
+          format: email
+          example: admin@cleankigali.rw
+        role:
+          type: string
+          enum: [admin, officer]
+        sectorId:
+          type: integer
+          nullable: true
+          example: null
+        isActive:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    District:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Gasabo
+        sectorCount:
+          type: integer
+          example: 15
+    Sector:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 9
+        name:
+          type: string
+          example: Kimironko
+        district:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            name:
+              type: string
+              example: Gasabo
+>>>>>>> 73ef236 (CK001-20: add districts and sectors endpoints)
     Health:
       type: object
       properties:
