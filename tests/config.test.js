@@ -7,7 +7,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 const SRC = path.join(__dirname, '..', 'src');
-const BASE = { PATH: process.env.PATH, DATABASE_URL: 'postgres://user:pass@db.example:5432/app' };
+const BASE = { PATH: process.env.PATH, DATABASE_URL: 'postgres://user:pass@db.example:5432/app', JWT_SECRET: 'x'.repeat(32) };
 
 // Runs `code` with only the given environment variables; returns its JSON output or its error.
 function run(code, env) {
@@ -45,6 +45,15 @@ test('wrong values stop the app with a clear message', () => {
   assert.match(loadConfig({ NODE_ENV: 'prod' }).error, /NODE_ENV must be one of development, test, production/);
   assert.match(loadConfig({ PORT: 'abc' }).error, /PORT must be a whole number/);
   assert.match(loadConfig({ DATABASE_SSL: 'yes' }).error, /DATABASE_SSL must be "true" or "false"/);
+});
+
+test('JWT settings: required, long in production, valid duration', () => {
+  assert.equal(loadConfig({}).jwtExpiresIn, '8h');
+  assert.equal(loadConfig({ JWT_EXPIRES_IN: '3600' }).jwtExpiresIn, 3600);
+  assert.match(loadConfig({ JWT_SECRET: '' }).error, /Missing required environment variable: JWT_SECRET/);
+  assert.match(loadConfig({ NODE_ENV: 'production', JWT_SECRET: 'short' }).error, /at least 32 characters/);
+  assert.equal(loadConfig({ JWT_SECRET: 'short' }).env, 'development');
+  assert.match(loadConfig({ JWT_EXPIRES_IN: 'soon' }).error, /JWT_EXPIRES_IN must be/);
 });
 
 // Calls the error handler with a fake response and prints what it would send.

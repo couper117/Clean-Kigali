@@ -11,6 +11,8 @@ servers:
 tags:
   - name: System
     description: Checks that the API is running
+  - name: Auth
+    description: Staff log in here. Click Authorize and paste the token to call staff routes.
 paths:
   /api/health:
     get:
@@ -35,8 +37,172 @@ paths:
                 database: down
                 uptimeSeconds: 42
                 timestamp: '2026-11-25T08:00:00.000Z'
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Log in as a staff member and get a token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Logged in. Send the token as Authorization Bearer on staff routes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Email or password is incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  status: 401
+                  message: Email or password is incorrect
+        '403':
+          description: The account is deactivated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  status: 403
+                  message: This account is deactivated; ask an admin to reactivate it
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      summary: The staff member who owns the token
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The logged-in user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: The token from POST /api/auth/login
+  responses:
+    BadRequest:
+      description: Some fields are not valid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              status: 400
+              message: Some fields are not valid
+              details:
+                - field: email
+                  message: Enter a valid email address
+    Unauthorized:
+      description: No token, or the token is not valid or has expired
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              status: 401
+              message: 'Log in first, then send the header Authorization: Bearer <token>'
+    Forbidden:
+      description: Logged in, but this role may not do this
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              status: 403
+              message: Only admin accounts can do this
+    NotFound:
+      description: No record with this id
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              status: 404
+              message: Report not found
   schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: admin@cleankigali.rw
+        password:
+          type: string
+          format: password
+          maxLength: 72
+          example: your-password
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        tokenType:
+          type: string
+          example: Bearer
+        expiresIn:
+          type: string
+          example: 8h
+        user:
+          $ref: '#/components/schemas/User'
+    User:
+      type: object
+      description: A staff account. The password hash is never returned.
+      properties:
+        id:
+          type: integer
+          example: 1
+        fullName:
+          type: string
+          example: Jean Bosco Niyonzima
+        email:
+          type: string
+          format: email
+          example: admin@cleankigali.rw
+        role:
+          type: string
+          enum: [admin, officer]
+        sectorId:
+          type: integer
+          nullable: true
+          example: null
+        isActive:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
     Health:
       type: object
       properties:
