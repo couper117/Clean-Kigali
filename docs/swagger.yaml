@@ -718,6 +718,73 @@ paths:
                 error:
                   status: 409
                   message: You cannot deactivate your own account; ask another admin
+  /api/reports/{id}/status:
+    patch:
+      tags: [Reports]
+      summary: Move a report to its next status (staff)
+      description: >
+        Allowed moves: new to in_progress or rejected; in_progress to resolved or
+        rejected. Resolved and rejected are final. Each change is recorded with who
+        made it and the note. Resolving sets resolvedAt. Rejecting needs a note.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ReportId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StatusChange'
+            example:
+              status: in_progress
+              note: Officer on the way
+      responses:
+        '200':
+          description: The report with its new status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: This move is not allowed from the current status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  status: 409
+                  message: 'A report that is resolved cannot move to new: resolved is final'
+  /api/reports/{id}/updates:
+    get:
+      tags: [Reports]
+      summary: A report's status history, oldest first (staff)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ReportId'
+      responses:
+        '200':
+          description: Every status change
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReportUpdate'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
 components:
   parameters:
     ReportId:
@@ -1249,6 +1316,47 @@ components:
         isActive:
           type: boolean
           description: Only to deactivate (false) or reactivate (true)
+    StatusChange:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [new, in_progress, resolved, rejected]
+        note:
+          type: string
+          maxLength: 500
+          description: Why the status changed. Required when rejecting.
+    ReportUpdate:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 31
+        oldStatus:
+          type: string
+          nullable: true
+          example: new
+        newStatus:
+          type: string
+          example: in_progress
+        note:
+          type: string
+          nullable: true
+          example: Officer on the way
+        changedBy:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+              example: 2
+            fullName:
+              type: string
+              example: Aline Uwase
+        createdAt:
+          type: string
+          format: date-time
     Health:
       type: object
       properties:
