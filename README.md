@@ -29,6 +29,7 @@ cp .env.example .env          # then edit DATABASE_URL to match your PostgreSQL
 createdb clean_kigali_dev
 createdb clean_kigali_test
 npm run migrate               # create the tables
+npm run migrate:test          # create them in the test database too
 npm run seed                  # add sample data
 npm run dev                   # http://localhost:3000/api-docs
 ```
@@ -40,6 +41,7 @@ npm run dev                   # http://localhost:3000/api-docs
 | `npm run dev` | Start the API and restart it when a file changes |
 | `npm start` | Start the API (used in production) |
 | `npm run migrate` | Run the SQL files in `db/migrations` that have not run yet |
+| `npm run migrate:test` | The same, on the test database (`TEST_DATABASE_URL`) |
 | `npm run seed` | Load sample data from `db/seeds` |
 | `npm test` | Run the tests against `TEST_DATABASE_URL` |
 
@@ -86,6 +88,27 @@ db/
 scripts/             migrate and seed runners
 docs/swagger.yaml    the API documentation
 tests/               API tests (node:test + supertest)
+```
+
+## Database migrations
+
+The schema is built by numbered SQL files in `db/migrations`. `npm run migrate`
+runs every file that has not run yet, in name order, and records it in the
+`schema_migrations` table so it never runs twice.
+
+- Each file runs inside a transaction: if any statement fails, the whole file
+  is undone and nothing is recorded.
+- A file that is still empty is a task not finished yet. The runner stops
+  there and runs it, and the files after it, once it has SQL.
+- Never edit a file that has already run. Add a new numbered file instead;
+  the runner warns if an applied file changes.
+- Two deploys cannot migrate at the same time (PostgreSQL advisory lock).
+
+```
+$ npm run migrate
+applied 001_create_districts_and_sectors.sql
+applied 002_create_categories.sql
+waiting 003_create_users.sql is still empty; it and later files will run once it has SQL
 ```
 
 ## Error format
