@@ -19,6 +19,8 @@ tags:
     description: Kigali's districts and sectors, used when reporting a problem
   - name: Categories
     description: Problem types residents choose from. Anyone can read them; admins manage them.
+  - name: Users
+    description: Staff accounts (admins and officers). Admins only. Password hashes are never returned.
 paths:
   /api/health:
     get:
@@ -559,6 +561,245 @@ paths:
                 error:
                   status: 409
                   message: This category is used by 4 report(s); move them to another category first
+  /api/users:
+    get:
+      tags: [Users]
+      summary: Staff accounts, by name (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [admin, officer]
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: The accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [Users]
+      summary: Create a staff account (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserInput'
+      responses:
+        '201':
+          description: Created. The Location header gives its URL.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: An account with this email already exists (ignoring case)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  status: 409
+                  message: A staff account with the email officer.remera@cleankigali.rw already exists
+  /api/users/{id}:
+    get:
+      tags: [Users]
+      summary: One staff account (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: The account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Users]
+      summary: Replace a staff account (admin)
+      description: >
+        Send the whole account. A sectorId left out is cleared. password and
+        isActive change only when sent; isActive true reactivates an account.
+        Admins cannot remove their own admin role or deactivate themselves.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserReplace'
+      responses:
+        '200':
+          description: The updated account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The email is taken, or an admin tried to demote or deactivate themselves
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags: [Users]
+      summary: Deactivate a staff account (admin)
+      description: >
+        The account stays in the report history but can no longer log in, and its
+        tokens stop working at once. PUT with isActive true brings it back.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '204':
+          description: Deactivated
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Admins cannot deactivate themselves
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  status: 409
+                  message: You cannot deactivate your own account; ask another admin
+  /api/reports/{id}/status:
+    patch:
+      tags: [Reports]
+      summary: Move a report to its next status (staff)
+      description: >
+        Allowed moves: new to in_progress or rejected; in_progress to resolved or
+        rejected. Resolved and rejected are final. Each change is recorded with who
+        made it and the note. Resolving sets resolvedAt. Rejecting needs a note.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ReportId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StatusChange'
+            example:
+              status: in_progress
+              note: Officer on the way
+      responses:
+        '200':
+          description: The report with its new status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: This move is not allowed from the current status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  status: 409
+                  message: 'A report that is resolved cannot move to new: resolved is final'
+  /api/reports/{id}/updates:
+    get:
+      tags: [Reports]
+      summary: A report's status history, oldest first (staff)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ReportId'
+      responses:
+        '200':
+          description: Every status change
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReportUpdate'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/reports/stats:
+    get:
+      tags: [Reports]
+      summary: Report counts and average time to resolve (staff)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The numbers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 components:
   parameters:
     ReportId:
@@ -577,6 +818,14 @@ components:
         type: integer
         minimum: 1
         example: 3
+    UserId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+        example: 2
   securitySchemes:
     bearerAuth:
       type: http
@@ -1027,6 +1276,165 @@ components:
         updatedAt:
           type: string
           format: date-time
+    UserInput:
+      type: object
+      required: [fullName, email, password, role]
+      properties:
+        fullName:
+          type: string
+          minLength: 3
+          maxLength: 100
+          example: Claudine Mukamana
+        email:
+          type: string
+          format: email
+          example: officer.remera@cleankigali.rw
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 72
+          example: a-strong-password
+        role:
+          type: string
+          enum: [admin, officer]
+        sectorId:
+          type: integer
+          nullable: true
+          example: 13
+    UserReplace:
+      type: object
+      required: [fullName, email, role]
+      properties:
+        fullName:
+          type: string
+          minLength: 3
+          maxLength: 100
+          example: Claudine Mukamana
+        email:
+          type: string
+          format: email
+          example: officer.remera@cleankigali.rw
+        role:
+          type: string
+          enum: [admin, officer]
+        sectorId:
+          type: integer
+          nullable: true
+          example: 13
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 72
+          description: Only to set a new password
+        isActive:
+          type: boolean
+          description: Only to deactivate (false) or reactivate (true)
+    StatusChange:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [new, in_progress, resolved, rejected]
+        note:
+          type: string
+          maxLength: 500
+          description: Why the status changed. Required when rejecting.
+    ReportUpdate:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 31
+        oldStatus:
+          type: string
+          nullable: true
+          example: new
+        newStatus:
+          type: string
+          example: in_progress
+        note:
+          type: string
+          nullable: true
+          example: Officer on the way
+        changedBy:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+              example: 2
+            fullName:
+              type: string
+              example: Aline Uwase
+        createdAt:
+          type: string
+          format: date-time
+    ReportStats:
+      type: object
+      properties:
+        total:
+          type: integer
+          example: 15
+        byStatus:
+          type: object
+          description: Every status, with 0 when no report has it
+          properties:
+            new:
+              type: integer
+              example: 5
+            in_progress:
+              type: integer
+              example: 4
+            resolved:
+              type: integer
+              example: 4
+            rejected:
+              type: integer
+              example: 2
+        byCategory:
+          type: array
+          description: Every category, most reports first
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                example: 1
+              name:
+                type: string
+                example: Illegal dumping
+              count:
+                type: integer
+                example: 4
+        bySector:
+          type: array
+          description: Sectors that have reports, most first
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                example: 9
+              name:
+                type: string
+                example: Kimironko
+              district:
+                type: string
+                example: Gasabo
+              count:
+                type: integer
+                example: 2
+        resolved:
+          type: integer
+          example: 4
+        averageHoursToResolve:
+          type: number
+          nullable: true
+          description: From report to resolved, over resolved reports. null when none are resolved.
+          example: 53
     Health:
       type: object
       properties:

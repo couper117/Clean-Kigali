@@ -1,6 +1,7 @@
 // Checks report input before it reaches the database. Each check answers 400 with one
 // entry per invalid field, in the standard error format, and passes on cleaned values.
 const AppError = require('../utils/AppError');
+const { validate, rules } = require('../middleware/validate');
 
 const STATUSES = ['new', 'in_progress', 'resolved', 'rejected'];
 const PRIORITIES = ['low', 'medium', 'high'];
@@ -217,6 +218,25 @@ function reportUpdate({ partial }) {
   };
 }
 
+// PATCH /api/reports/:id/status. A note is required when rejecting, so the
+// resident can see why.
+const checkStatus = validate({
+  body: {
+    status: rules.oneOf(STATUSES, { required: true }),
+    note: rules.text({ max: 500 }),
+  },
+});
+
+function validateStatusChange(req, res, next) {
+  checkStatus(req, res, (err) => {
+    if (err) return next(err);
+    if (req.body.status === 'rejected' && !req.body.note) {
+      return next(fail([{ field: 'note', message: 'Say why the report is rejected' }]));
+    }
+    next();
+  });
+}
+
 module.exports = {
   validateCreateReport,
   validateListQuery,
@@ -224,6 +244,7 @@ module.exports = {
   validateReference,
   validateReportReplace: reportUpdate({ partial: false }),
   validateReportPatch: reportUpdate({ partial: true }),
+  validateStatusChange,
   STATUSES,
   PRIORITIES,
 };

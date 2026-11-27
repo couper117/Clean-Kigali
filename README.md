@@ -43,7 +43,7 @@ npm run dev                   # http://localhost:3000/api-docs
 | `npm run migrate` | Run the SQL files in `db/migrations` that have not run yet |
 | `npm run migrate:test` | The same, on the test database (`TEST_DATABASE_URL`) |
 | `npm run seed` | Load sample data from `db/seeds` |
-| `npm test` | Run the tests against `TEST_DATABASE_URL` |
+| `npm test` | Run the tests against `TEST_DATABASE_URL`, one file at a time. Each file empties that database and loads the seed again, so never point it at real data |
 
 ## Environment variables
 
@@ -97,7 +97,7 @@ Frankfurt (`fra1` and `eu-central-1`), the closest region to Rwanda.
   ```bash
   vercel env pull .env.production.local      # gitignored
   # copy DATABASE_URL_UNPOOLED from that file, then:
-  DATABASE_URL='<that url>' DATABASE_SSL=true npm run seed
+  DATABASE_URL='<that url>' DATABASE_SSL=true SEED_PASSWORD='<12+ characters>' npm run seed
   ```
 - **Secrets:** only in Vercel's settings and `.env` files, which are never
   committed.
@@ -163,6 +163,15 @@ curl -X POST http://localhost:3000/api/auth/login \
   -d '{"email":"admin@cleankigali.rw","password":"..."}'
 ```
 
+`npm run seed` creates these accounts, all with the password from
+`SEED_PASSWORD` (on a laptop, `CleanKigali-dev-2026` by default):
+
+| Email | Role |
+|---|---|
+| `admin@cleankigali.rw` | admin |
+| `officer.gasabo@cleankigali.rw` | officer, Kimironko |
+| `officer.nyarugenge@cleankigali.rw` | officer, Nyamirambo |
+
 Send the token on staff routes as `Authorization: Bearer <token>`. In Swagger,
 click **Authorize** and paste it. A token lasts `JWT_EXPIRES_IN` (8 hours by
 default). Deactivating an account stops its token working at once.
@@ -188,6 +197,17 @@ Every error has the same shape:
 ```
 
 Validation errors add a `details` list with one entry per invalid field.
+
+## Team
+
+| Name | Role | GitHub |
+|---|---|---|
+| Kenny Kelvin | Team lead and backend developer | [couper117](https://github.com/couper117) |
+| Utuje Oceanne Camilla | Database and API developer, research lead | [utujecam](https://github.com/utujecam) |
+| Isaro Deborah | API developer and documentation lead | [deborahisaro](https://github.com/deborahisaro) |
+
+Who owns each task is in [docs/plan/TASKS.md](docs/plan/TASKS.md); roles and
+communication are in [docs/plan/TEAM.md](docs/plan/TEAM.md).
 
 ## How we work
 
