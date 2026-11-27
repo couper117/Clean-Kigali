@@ -19,3 +19,10 @@ function shutdown(signal) {
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
+
+// A promise that failed with nobody handling it means the app is in an unknown state.
+// Log it and exit with an error; Render then starts a fresh copy.
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled promise rejection:', reason);
+  process.exit(1);
+});
