@@ -1,5 +1,6 @@
 const reportsService = require('../services/reports.service');
 const reportStatus = require('../services/reportStatus.service');
+const reportStats = require('../services/reportStats.service');
 
 // POST /api/reports: anyone can report a problem and gets a reference code back.
 async function create(req, res) {
@@ -43,6 +44,11 @@ async function history(req, res) {
   res.json(await reportStatus.history(req.reportId));
 }
 
+// GET /api/reports/stats: counts and average time to resolve (staff).
+async function stats(req, res) {
+  res.json(await reportStats.stats());
+}
+
 module.exports = {
-  create, list, track, getOne, update, remove, changeStatus, history,
+  create, list, track, getOne, update, remove, changeStatus, history, stats,
 };

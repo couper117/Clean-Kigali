@@ -14,6 +14,7 @@ router.get('/track/:reference', validateReference, controller.track);
 
 // Staff
 router.get('/', requireAuth, validateListQuery, controller.list);
+router.get('/stats', requireAuth, controller.stats);
 
 // Paths with a fixed word (such as /stats) must be added ABOVE this line,
 // otherwise '/:id' catches them first and answers 400.
