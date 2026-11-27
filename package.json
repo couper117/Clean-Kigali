@@ -10,7 +10,7 @@
     "migrate": "node scripts/migrate.js",
     "migrate:test": "node scripts/migrate.js --test",
     "seed": "node scripts/seed.js",
-    "test": "node --test \"tests/*.test.js\"",
+    "test": "node --test --test-concurrency=1 \"tests/*.test.js\"",
     "vercel-build": "node scripts/vercel-build.js"
   },
   "engines": {

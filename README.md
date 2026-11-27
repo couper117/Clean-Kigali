@@ -43,7 +43,7 @@ npm run dev                   # http://localhost:3000/api-docs
 | `npm run migrate` | Run the SQL files in `db/migrations` that have not run yet |
 | `npm run migrate:test` | The same, on the test database (`TEST_DATABASE_URL`) |
 | `npm run seed` | Load sample data from `db/seeds` |
-| `npm test` | Run the tests against `TEST_DATABASE_URL` |
+| `npm test` | Run the tests against `TEST_DATABASE_URL`, one file at a time. Each file empties that database and loads the seed again, so never point it at real data |
 
 ## Environment variables
 
