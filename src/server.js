@@ -1,4 +1,5 @@
-// Entry point: starts the HTTP server and shuts it down cleanly.
+// Entry point on a laptop (npm run dev / npm start): starts the HTTP server and shuts it
+// down cleanly. On Vercel the app in src/app.js runs as a function instead.
 const app = require('./app');
 const config = require('./config/env');
 const { pool } = require('./db/pool');
@@ -8,7 +9,7 @@ const server = app.listen(config.port, () => {
   console.log(`Swagger docs: http://localhost:${config.port}/api-docs`);
 });
 
-// Render sends SIGTERM before replacing the app; finish open requests, then close the pool.
+// Ctrl+C or a stop signal: finish open requests, then close the pool.
 function shutdown(signal) {
   console.log(`${signal} received, shutting down`);
   server.close(async () => {
@@ -21,7 +22,7 @@ process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
 // A promise that failed with nobody handling it means the app is in an unknown state.
-// Log it and exit with an error; Render then starts a fresh copy.
+// Log it and exit with an error, so the problem is seen instead of hidden.
 process.on('unhandledRejection', (reason) => {
   console.error('Unhandled promise rejection:', reason);
   process.exit(1);
