@@ -19,7 +19,12 @@ tags:
     description: Sanitation problems reported by residents and followed by staff
   - name: Locations
     description: Kigali's districts and sectors, used when reporting a problem
+<<<<<<< HEAD
 >>>>>>> 73ef236 (CK001-20: add districts and sectors endpoints)
+=======
+  - name: Categories
+    description: Problem types residents choose from. Anyone can read them; admins manage them.
+>>>>>>> 502ac3f (CK001-21: add categories CRUD)
 paths:
   /api/health:
     get:
@@ -435,8 +440,206 @@ paths:
                   $ref: '#/components/schemas/Sector'
         '400':
           $ref: '#/components/responses/BadRequest'
+<<<<<<< HEAD
 >>>>>>> 73ef236 (CK001-20: add districts and sectors endpoints)
 components:
+=======
+  /api/categories:
+    get:
+      tags: [Categories]
+      summary: All categories, by name
+      responses:
+        '200':
+          description: The categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+    post:
+      tags: [Categories]
+      summary: Add a category (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryInput'
+      responses:
+        '201':
+          description: Created. The Location header gives its URL.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: A category with this name already exists (ignoring case)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  status: 409
+                  message: A category named "Blocked drain" already exists
+  /api/categories/{id}:
+    get:
+      tags: [Categories]
+      summary: One category
+      parameters:
+        - $ref: '#/components/parameters/CategoryId'
+      responses:
+        '200':
+          description: The category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Categories]
+      summary: Replace a category (admin)
+      description: Send the whole category. A description left out is cleared.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CategoryId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryInput'
+      responses:
+        '200':
+          description: The updated category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Another category already has this name
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags: [Categories]
+      summary: Delete a category no report uses (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CategoryId'
+      responses:
+        '204':
+          description: Deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Reports still use this category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  status: 409
+                  message: This category is used by 4 report(s); move them to another category first
+components:
+  parameters:
+    ReportId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+        example: 12
+    CategoryId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+        example: 3
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: The token from POST /api/auth/login
+  responses:
+    BadRequest:
+      description: Some fields are not valid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              status: 400
+              message: Some fields are not valid
+              details:
+                - field: email
+                  message: Enter a valid email address
+    Unauthorized:
+      description: No token, or the token is not valid or has expired
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              status: 401
+              message: 'Log in first, then send the header Authorization: Bearer <token>'
+    Forbidden:
+      description: Logged in, but this role may not do this
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              status: 403
+              message: Only admin accounts can do this
+    NotFound:
+      description: No record with this id
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              status: 404
+              message: Report not found
+>>>>>>> 502ac3f (CK001-21: add categories CRUD)
   schemas:
 <<<<<<< HEAD
 =======
@@ -806,7 +1009,43 @@ components:
             name:
               type: string
               example: Gasabo
+<<<<<<< HEAD
 >>>>>>> 73ef236 (CK001-20: add districts and sectors endpoints)
+=======
+    CategoryInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 60
+          example: Blocked drain
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+          example: A drain or gutter blocked by waste, flooding the road
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 3
+        name:
+          type: string
+          example: Blocked drain
+        description:
+          type: string
+          nullable: true
+          example: A drain or gutter blocked by waste, flooding the road
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+>>>>>>> 502ac3f (CK001-21: add categories CRUD)
     Health:
       type: object
       properties:
