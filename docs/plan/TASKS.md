@@ -34,7 +34,7 @@ Every commit for a task starts with its key, for example `CK001-21: add category
 | CK001-27 | API tests: auth, categories and users | Utuje Oceanne Camilla | 3h | testing |
 | CK001-28 | API tests: reports | Isaro Deborah | 3h | testing |
 | CK001-29 | Production configuration | Kenny Kelvin | 2h | deploy |
-| CK001-30 | Deploy to Render | Kenny Kelvin | 3h | deploy |
+| CK001-30 | Deploy to Vercel | Kenny Kelvin | 3h | deploy |
 | CK001-31 | Live Swagger test run and demo script | Kenny Kelvin | 2h | deploy |
 | CK001-32 | Evaluation checklist and results | Isaro Deborah | 2h | evaluation |
 | CK001-33 | Pitch: value proposition, market and competitors | Utuje Oceanne Camilla | 3h | evaluation |
