@@ -10,8 +10,8 @@ Built with **Express.js 5** and **PostgreSQL**, documented with **Swagger**
 | | Link |
 |---|---|
 | Swagger docs (local) | http://localhost:3000/api-docs |
-| Production API | _added after deployment_ |
-| Production Swagger | _added after deployment_ |
+| Production API | https://cleankigali.vercel.app/api/health |
+| Production Swagger | https://cleankigali.vercel.app/api-docs |
 | Jira board | _added when the project is created_ |
 
 ## Requirements
@@ -79,6 +79,7 @@ not `true`/`false` stops the app with a message naming the variable.
 The API runs on **Vercel** as one Node.js function, with a **Neon** PostgreSQL
 database added through the Vercel Marketplace. Both are on free plans in
 Frankfurt (`fra1` and `eu-central-1`), the closest region to Rwanda.
+Live at **https://cleankigali.vercel.app**.
 
 | Piece | Where it is set |
 |---|---|
