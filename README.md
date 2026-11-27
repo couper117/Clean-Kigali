@@ -198,6 +198,17 @@ Every error has the same shape:
 
 Validation errors add a `details` list with one entry per invalid field.
 
+## Team
+
+| Name | Role | GitHub |
+|---|---|---|
+| Kenny Kelvin | Team lead and backend developer | [couper117](https://github.com/couper117) |
+| Utuje Oceanne Camilla | Database and API developer, research lead | [utujecam](https://github.com/utujecam) |
+| Isaro Deborah | API developer and documentation lead | [deborahisaro](https://github.com/deborahisaro) |
+
+Who owns each task is in [docs/plan/TASKS.md](docs/plan/TASKS.md); roles and
+communication are in [docs/plan/TEAM.md](docs/plan/TEAM.md).
+
 ## How we work
 
 1. Pick a task in Jira and move it to **In Progress**.
